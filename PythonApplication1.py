@@ -156,19 +156,42 @@ class MainWindow(QWidget):
         self.quantity_spinbox.setMaximum(1000)
         self.quantity_spinbox.setValue(1)
 
-        # Layouts para OP y cantidad
+        # Campo para total de etiquetas en el lote
+        self.lote_total_label = QLabel('Total de etiquetas en el lote:')
+        self.lote_total_spinbox = QSpinBox()
+        self.lote_total_spinbox.setMinimum(1)
+        self.lote_total_spinbox.setMaximum(10000)
+        self.lote_total_spinbox.setValue(1)
+
+        # Campo para número de inicio
+        self.start_number_label = QLabel('Número de inicio:')
+        self.start_number_spinbox = QSpinBox()
+        self.start_number_spinbox.setMinimum(1)
+        self.start_number_spinbox.setMaximum(10000)
+        self.start_number_spinbox.setValue(1)
+
+        # Layouts para OP, cantidad, lote y número de inicio
         op_layout = QHBoxLayout()
         op_layout.addWidget(self.op_description_label)
         op_layout.addWidget(self.op_description_input)
+
+        quantity_layout = QHBoxLayout()
+        quantity_layout.addWidget(self.quantity_label)
+        quantity_layout.addWidget(self.quantity_spinbox)
 
         # Layout para versión SGC
         sgc_layout = QHBoxLayout()
         sgc_layout.addWidget(self.sgc_version_label)
         sgc_layout.addWidget(self.sgc_version_input)
 
-        quantity_layout = QHBoxLayout()
-        quantity_layout.addWidget(self.quantity_label)
-        quantity_layout.addWidget(self.quantity_spinbox)
+        # Layouts para lote y número de inicio
+        lote_layout = QHBoxLayout()
+        lote_layout.addWidget(self.lote_total_label)
+        lote_layout.addWidget(self.lote_total_spinbox)
+
+        start_layout = QHBoxLayout()
+        start_layout.addWidget(self.start_number_label)
+        start_layout.addWidget(self.start_number_spinbox)
 
         # Botón de impresión
         self.print_button = QPushButton('Imprimir')
@@ -181,8 +204,9 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.scroll_area)
         main_layout.addLayout(op_layout)
         main_layout.addLayout(sgc_layout)
-        main_layout.addWidget(self.quantity_label)
-        main_layout.addWidget(self.quantity_spinbox)
+        main_layout.addLayout(quantity_layout)
+        main_layout.addLayout(lote_layout)
+        main_layout.addLayout(start_layout)
         main_layout.addWidget(self.print_button)
 
         # Conexiones de señales
@@ -247,6 +271,13 @@ class MainWindow(QWidget):
             quantity = self.quantity_spinbox.value()
             id_producto = self.selected_product.get('id_producto', 'N/A')
             nombre_producto = self.selected_product.get('nombre', 'N/A')
+            lote_total = self.lote_total_spinbox.value()
+            start_number = self.start_number_spinbox.value()
+
+            # Validación
+            if start_number + quantity - 1 > lote_total:
+                QMessageBox.warning(self, "Error", "El rango de etiquetas a imprimir excede el total del lote.")
+                return
 
             print("--- Generando etiquetas ZPL ---")
             try:
@@ -255,7 +286,7 @@ class MainWindow(QWidget):
 
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.connect((printer_ip, printer_port))
-                    for i in range(1, quantity + 1):
+                    for i in range(start_number, start_number + quantity):
                         # Convertir a Latin-1 para la impresora
                         nombre_producto_print = nombre_producto.encode('latin1', errors='replace').decode('latin1')
                         op_description_print = op_description.encode('latin1', errors='replace').decode('latin1')
@@ -265,12 +296,12 @@ class MainWindow(QWidget):
                         ^FO50,35^A0N,18,18^FD{nombre_producto_print}^FS
                         ^FO50,60^BCN,75,Y,N,N^FD{id_producto}^FS
                         ^FO50,168^A0N,20,20^FD{op_description_print}^FS
-                        ^FO50,188^A0N,18,18^FD{i}/{quantity}^FS
+                        ^FO50,188^A0N,18,18^FD{i}/{lote_total}^FS
                         ^FO200,188^A0N,18,18^FD{sgc_version_print}^FS
                         ^FO215,168^A0N,18,18^FD{datetime.now().strftime('%d/%m/%Y')}^FS
                         ^PQ1,1,1,Y^XZ"""
 
-                        print(f"--- Enviando etiqueta {i}/{quantity} ---")
+                        print(f"--- Enviando etiqueta {i}/{lote_total} ---")
                         print(zpl_label)
                         sock.sendall(zpl_label.encode('latin1'))
                     print(f"Se enviaron {quantity} etiquetas a la impresora!")
