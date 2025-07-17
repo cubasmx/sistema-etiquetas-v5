@@ -41,3 +41,7 @@ ENV/
 # Archivos del sistema
 .DS_Store
 Thumbs.db 
+
+# PyInstaller
+build/
+dist/ 
