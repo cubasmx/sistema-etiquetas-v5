@@ -31,7 +31,6 @@ ENV/
 *.swo
 
 # Archivos de configuración local
-odoo_config.py
 
 # Archivos temporales
 *.tmp
