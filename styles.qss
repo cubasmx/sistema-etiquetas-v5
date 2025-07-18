@@ -62,15 +62,22 @@ QSpinBox {
 }
 
 QSpinBox::up-button, QSpinBox::down-button {
-    background: #e6e6e6;
+    background:rgb(255, 255, 255);
     border: 1px solid #aaa;
     width: 20px;
     height: 14px;
     subcontrol-origin: border;
     subcontrol-position: right;
     border-radius: 2px;
-    margin: 1px 1px 1px 1px;
+    margin: 1px;
 }
+
+QSpinBox::up-button:hover,
+QSpinBox::down-button:hover {
+    border-color: #0078d7;
+    background-color: #eef6fd;
+}
+
 
 QSpinBox::up-button {
     subcontrol-position: top right;
