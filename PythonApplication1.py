@@ -22,10 +22,41 @@ from odoo_client import OdooClient
 import json
 import os
 
+class HistoryDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Historial de Impresiones')
+        self.resize(450, 400)
+        self.setMinimumSize(450, 400)
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        self.list_widget = QListWidget()
+        layout.addWidget(self.list_widget)
+
+        self.load_history()
+
+    def load_history(self):
+        history_file = 'historial_impresiones.json'
+        if os.path.exists(history_file):
+            try:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                for entry in data:
+                    # Puedes personalizar el formato de cada entrada aquí
+                    texto = f"{entry.get('fecha', '')} - {entry.get('producto', '')} - Cantidad: {entry.get('cantidad', '')}"
+                    self.list_widget.addItem(texto)
+            except Exception as e:
+                self.list_widget.addItem(f"Error al cargar historial: {str(e)}")
+        else:
+            self.list_widget.addItem('No hay historial disponible.')
+
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Configuración de Odoo')
+        self.resize(450, 400)
+        self.setMinimumSize(450, 400)
         self.setModal(True)
         
         # Crear layout
@@ -114,6 +145,14 @@ class MainWindow(QWidget):
         # Botón de configuración
         self.config_button = QPushButton('⚙️ Configuración')
         self.config_button.clicked.connect(self.show_config_dialog)
+        # Botón de historial
+        self.history_button = QPushButton('📄 Ver Historial')
+        self.history_button.clicked.connect(self.show_history_dialog)
+
+        # Layout para los botones superiores
+        top_buttons_layout = QHBoxLayout()
+        top_buttons_layout.addWidget(self.config_button)
+        top_buttons_layout.addWidget(self.history_button)
 
         # Botones y campos de entrada
         self.search_input = QLineEdit()
@@ -198,7 +237,7 @@ class MainWindow(QWidget):
 
         # Layout principal
         main_layout = QVBoxLayout(self)
-        main_layout.addWidget(self.config_button)
+        main_layout.addLayout(top_buttons_layout)
         main_layout.addLayout(search_layout)
         main_layout.addWidget(self.result_label)
         main_layout.addWidget(self.scroll_area)
@@ -348,8 +387,18 @@ ODOO_CONFIG = {json.dumps(config, indent=4)}"""
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Error al guardar la configuración: {str(e)}")
 
+    def show_history_dialog(self):
+        """Muestra el diálogo de historial"""
+        dialog = HistoryDialog(self)
+        dialog.exec()
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    with open("styles.qss", "r") as f:
+        qss = f.read()
+        print("QSS cargado:", qss[:100]) 
+        app.setStyleSheet(qss)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
