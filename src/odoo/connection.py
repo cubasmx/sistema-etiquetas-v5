@@ -1,6 +1,5 @@
 import xmlrpc.client
-import json
-import os
+from odoo_config import ODOO_CONFIG  # <-- Agregado
 from typing import Dict, List, Optional, Tuple, Any
 from urllib.parse import urlparse
 
@@ -9,7 +8,7 @@ class OdooConnection:
         self.client = None
         self.uid = None
         self.models = None
-        self.config = None
+        self.config = ODOO_CONFIG  # <-- Usar ODOO_CONFIG directamente
         
     def _format_url(self, url: str) -> str:
         """
@@ -35,20 +34,14 @@ class OdooConnection:
         
     def connect(self) -> Tuple[bool, str]:
         """
-        Establece la conexión con Odoo usando la configuración guardada
+        Establece la conexión con Odoo usando la configuración de odoo_config.py
         Returns:
             Tuple[bool, str]: (éxito, mensaje)
         """
         try:
-            # Cargar configuración
-            if not os.path.exists('config.json'):
-                return False, "No existe archivo de configuración"
-            
-            with open('config.json', 'r') as f:
-                self.config = json.load(f)
-            
+            # Usar configuración de odoo_config.py
             # Validar configuración
-            required_fields = ['url', 'database', 'username', 'password']
+            required_fields = ['url', 'db', 'username', 'password']
             if not all(field in self.config for field in required_fields):
                 return False, "Configuración incompleta"
             
@@ -66,7 +59,7 @@ class OdooConnection:
             # Autenticar
             try:
                 self.uid = common.authenticate(
-                    self.config['database'],
+                    self.config['db'],  # <-- Cambiado de 'database' a 'db'
                     self.config['username'],
                     self.config['password'],
                     {}
@@ -97,7 +90,7 @@ class OdooConnection:
         try:
             # Buscar productos con BOM
             bom_products = self.models.execute_kw(
-                self.config['database'],
+                self.config['db'],
                 self.uid,
                 self.config['password'],
                 'mrp.bom',
@@ -113,16 +106,20 @@ class OdooConnection:
                 return []
             
             # Obtener IDs únicos de productos
-            product_ids = list(set(bom['product_tmpl_id'][0] for bom in bom_products))
+            product_ids = list(set(
+                bom['product_tmpl_id'][0]
+                for bom in bom_products
+                if isinstance(bom.get('product_tmpl_id'), list) and len(bom.get('product_tmpl_id')) > 0
+            ))
             
             # Obtener detalles de los productos
             products = self.models.execute_kw(
-                self.config['database'],
+                self.config['db'],
                 self.uid,
                 self.config['password'],
                 'product.template',
                 'read',
-                [product_ids],
+                [product_ids] if product_ids else [[]],
                 {'fields': ['id', 'name', 'default_code']}
             )
             
@@ -146,7 +143,7 @@ class OdooConnection:
         try:
             # Buscar BOM activa para el producto
             bom = self.models.execute_kw(
-                self.config['database'],
+                self.config['db'],
                 self.uid,
                 self.config['password'],
                 'mrp.bom',
@@ -172,47 +169,51 @@ class OdooConnection:
                 raise ValueError(f"No se encontró BOM para el producto {product_id}")
             
             bom = bom[0]
+            # Validar que product_tmpl_id sea lista
+            product_tmpl_id = bom['product_tmpl_id'][0] if isinstance(bom.get('product_tmpl_id'), list) and len(bom.get('product_tmpl_id')) > 0 else None
             
             # Obtener información del producto
             product_info = self.models.execute_kw(
-                self.config['database'],
+                self.config['db'],
                 self.uid,
                 self.config['password'],
                 'product.template',
                 'read',
-                [bom['product_tmpl_id'][0]],
+                [product_tmpl_id] if product_tmpl_id is not None else [],
                 {
                     'fields': [
                         'standard_price',  # Costo del producto
                         'route_ids'        # Rutas de fabricación
                     ]
                 }
-            )[0]
+            )
+            product_info = product_info[0] if product_info else {}
             
             # Obtener operaciones de fabricación
             operations = []
             if bom.get('routing_id'):
                 # Obtener las operaciones de la ruta de fabricación
                 routing = self.models.execute_kw(
-                    self.config['database'],
+                    self.config['db'],
                     self.uid,
                     self.config['password'],
                     'mrp.routing',
                     'read',
-                    [bom['routing_id'][0]],
+                    [bom['routing_id'][0]] if isinstance(bom['routing_id'], list) and len(bom['routing_id']) > 0 else [],
                     {
                         'fields': ['operation_ids']
                     }
-                )[0]
+                )
+                routing = routing[0] if routing else {}
                 
                 if routing.get('operation_ids'):
                     operations = self.models.execute_kw(
-                        self.config['database'],
+                        self.config['db'],
                         self.uid,
                         self.config['password'],
                         'mrp.routing.workcenter',
                         'read',
-                        [routing['operation_ids']],
+                        [routing['operation_ids']] if isinstance(routing['operation_ids'], list) and len(routing['operation_ids']) > 0 else [],
                         {
                             'fields': [
                                 'name',
@@ -229,19 +230,20 @@ class OdooConnection:
                 for op in operations:
                     if op['workcenter_id']:
                         workcenter = self.models.execute_kw(
-                            self.config['database'],
+                            self.config['db'],
                             self.uid,
                             self.config['password'],
                             'mrp.workcenter',
                             'read',
-                            [op['workcenter_id'][0]],
+                            [op['workcenter_id'][0]] if isinstance(op['workcenter_id'], list) and len(op['workcenter_id']) > 0 else [],
                             {
                                 'fields': [
                                     'costs_hour',
                                     'time_efficiency'
                                 ]
                             }
-                        )[0]
+                        )
+                        workcenter = workcenter[0] if workcenter else {}
                         
                         # Calcular costo de la operación
                         time_hours = float(op['time_cycle_manual'] or op['time_cycle'] or 0.0) / 60.0  # Convertir minutos a horas
@@ -255,23 +257,23 @@ class OdooConnection:
             routes = []
             if product_info.get('route_ids'):
                 routes = self.models.execute_kw(
-                    self.config['database'],
+                    self.config['db'],
                     self.uid,
                     self.config['password'],
                     'stock.route',
                     'read',
-                    [product_info['route_ids']],
+                    [product_info['route_ids']] if isinstance(product_info['route_ids'], list) and len(product_info['route_ids']) > 0 else [],
                     {'fields': ['name']}
                 )
             
             # Obtener líneas de la BOM con campos adicionales
             lines = self.models.execute_kw(
-                self.config['database'],
+                self.config['db'],
                 self.uid,
                 self.config['password'],
                 'mrp.bom.line',
                 'read',
-                [bom['bom_line_ids']],
+                [bom['bom_line_ids']] if isinstance(bom['bom_line_ids'], list) and len(bom['bom_line_ids']) > 0 else [],
                 {
                     'fields': [
                         'product_id',
@@ -289,15 +291,17 @@ class OdooConnection:
             
             for line in lines:
                 # Obtener costo del componente
+                product_id_val = line['product_id'][0] if isinstance(line['product_id'], list) and len(line['product_id']) > 0 else None
                 component_info = self.models.execute_kw(
-                    self.config['database'],
+                    self.config['db'],
                     self.uid,
                     self.config['password'],
                     'product.product',
                     'read',
-                    [line['product_id'][0]],
+                    [product_id_val] if product_id_val is not None else [],
                     {'fields': ['standard_price', 'product_tmpl_id']}
-                )[0]
+                )
+                component_info = component_info[0] if component_info else {}
                 
                 product_cost = float(component_info['standard_price'])
                 material_cost = 0.0
@@ -345,9 +349,9 @@ class OdooConnection:
             return {
                 'bom_id': int(bom['id']),
                 'product_qty': float(bom['product_qty']),
-                'code': str(bom['code']) if bom['code'] else '',
-                'uom': str(bom['product_uom_id'][1]) if bom['product_uom_id'] else '',
-                'product_name': str(bom['product_tmpl_id'][1]),
+                'code': str(bom['code']) if bom.get('code') else '',
+                'uom': str(bom['product_uom_id'][1]) if isinstance(bom.get('product_uom_id'), list) and len(bom.get('product_uom_id')) > 1 else '',
+                'product_name': str(bom['product_tmpl_id'][1]) if isinstance(bom.get('product_tmpl_id'), list) and len(bom.get('product_tmpl_id')) > 1 else '',
                 'lines': processed_lines,
                 'level': level,
                 'operations': operations,
