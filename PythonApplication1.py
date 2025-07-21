@@ -27,7 +27,7 @@ class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Historial de Impresiones')
-        self.resize(500, 400)
+        self.resize(700, 400)
         self.setMinimumSize(500, 400)
         self.setModal(True)
 
@@ -52,7 +52,9 @@ class HistoryDialog(QDialog):
                         fecha_fmt = str(fecha_raw)
                     nombre = entry.get('nombre', entry.get('NOMBRE', ''))
                     cantidad = entry.get('cantidad', entry.get('CANTIDAD', ''))
-                    texto = f"{fecha_fmt} - {nombre} - Cantidad: {cantidad}"
+                    op = entry.get('op', entry.get('OP', ''))
+                    versionsgc = entry.get('versionsgc', entry.get('VERSIONSGC', ''))
+                    texto = f"{fecha_fmt} - {nombre} - Cantidad: {cantidad} - OP: {op} - SGC: {versionsgc}"
                     self.list_widget.addItem(texto)
             else:
                 self.list_widget.addItem('No hay historial disponible.')
@@ -140,6 +142,8 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle('Impresión de Etiquetas')
         self.setGeometry(100, 100, 500, 500)
+        self.resize(500, 500)
+        self.setMinimumSize(500, 500)
 
         try:
             # Inicializar cliente de Odoo
