@@ -36,11 +36,11 @@ class MysqlClient:
         try:
             cursor = self.connection.cursor(dictionary=True)
             if ID:
-                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones WHERE ID = %s"
+                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones WHERE ID = %s ORDER BY fecha_operacion DESC"
                 print(f'[LOG] Ejecutando SELECT con filtro ID: {ID}')
                 cursor.execute(query, (ID,))
             else:
-                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones"
+                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones ORDER BY fecha_operacion DESC"
                 print('[LOG] Ejecutando SELECT de todas las impresiones')
                 cursor.execute(query)
             results = cursor.fetchall()
@@ -50,6 +50,7 @@ class MysqlClient:
         except Error as e:
             print(f'[ERROR] Error al ejecutar SELECT en Impresiones: {e}')
             return None
+
 
     def insert_impresion(self, ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion=None):
         """
