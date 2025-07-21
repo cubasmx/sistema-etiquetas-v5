@@ -27,7 +27,7 @@ class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Historial de Impresiones')
-        self.resize(700, 400)
+        self.resize(900, 500)
         self.setMinimumSize(500, 400)
         self.setModal(True)
 
@@ -50,11 +50,15 @@ class HistoryDialog(QDialog):
                         fecha_fmt = datetime.strptime(str(fecha_raw), "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M")
                     except Exception:
                         fecha_fmt = str(fecha_raw)
+                    id_ = entry.get('ID', entry.get('id', ''))
                     nombre = entry.get('nombre', entry.get('NOMBRE', ''))
-                    cantidad = entry.get('cantidad', entry.get('CANTIDAD', ''))
                     op = entry.get('op', entry.get('OP', ''))
                     versionsgc = entry.get('versionsgc', entry.get('VERSIONSGC', ''))
-                    texto = f"{fecha_fmt} - {nombre} - Cantidad: {cantidad} - OP: {op} - SGC: {versionsgc}"
+                    cantidad = entry.get('cantidad', entry.get('CANTIDAD', ''))
+                    totallote = entry.get('totallote', entry.get('TOTALLOTE', ''))
+                    numinicio = entry.get('numinicio', entry.get('NUMINICIO', ''))
+                    texto = (f"{fecha_fmt} - ID: {id_} - {nombre} - OP: {op} - SGC: {versionsgc} - "
+                             f"Cantidad: {cantidad} - Total Lote: {totallote} - Inicio: {numinicio}")
                     self.list_widget.addItem(texto)
             else:
                 self.list_widget.addItem('No hay historial disponible.')
