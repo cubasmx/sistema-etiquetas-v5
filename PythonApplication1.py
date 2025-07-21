@@ -21,13 +21,14 @@ import socket
 from odoo_client import OdooClient
 import json
 import os
+from src.utils.mysql_client import MysqlClient
 
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Historial de Impresiones')
-        self.resize(450, 400)
-        self.setMinimumSize(450, 400)
+        self.resize(500, 400)
+        self.setMinimumSize(500, 400)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
@@ -37,19 +38,27 @@ class HistoryDialog(QDialog):
         self.load_history()
 
     def load_history(self):
-        history_file = 'historial_impresiones.json'
-        if os.path.exists(history_file):
-            try:
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                for entry in data:
-                    # Puedes personalizar el formato de cada entrada aquí
-                    texto = f"{entry.get('fecha', '')} - {entry.get('producto', '')} - Cantidad: {entry.get('cantidad', '')}"
+        # Usar MysqlClient para obtener el historial de impresiones
+        try:
+            client = MysqlClient()
+            client.connect()
+            resultados = client.select_impresiones()
+            if resultados:
+                for entry in resultados:
+                    fecha_raw = entry.get('fecha_operacion', entry.get('FECHA_OPERACION', ''))
+                    try:
+                        fecha_fmt = datetime.strptime(str(fecha_raw), "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M")
+                    except Exception:
+                        fecha_fmt = str(fecha_raw)
+                    nombre = entry.get('nombre', entry.get('NOMBRE', ''))
+                    cantidad = entry.get('cantidad', entry.get('CANTIDAD', ''))
+                    texto = f"{fecha_fmt} - {nombre} - Cantidad: {cantidad}"
                     self.list_widget.addItem(texto)
-            except Exception as e:
-                self.list_widget.addItem(f"Error al cargar historial: {str(e)}")
-        else:
-            self.list_widget.addItem('No hay historial disponible.')
+            else:
+                self.list_widget.addItem('No hay historial disponible.')
+            client.close()
+        except Exception as e:
+            self.list_widget.addItem(f"Error al cargar historial: {str(e)}")
 
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
@@ -316,6 +325,31 @@ class MainWindow(QWidget):
             # Validación
             if start_number + quantity - 1 > lote_total:
                 QMessageBox.warning(self, "Error", "El rango de etiquetas a imprimir excede el total del lote.")
+                return
+
+            # Insertar en la base de datos antes de imprimir
+            try:
+                client = MysqlClient()
+                client.connect()
+                user = None
+                insert_ok = client.insert_impresion(
+                    ID=id_producto,
+                    user=user,
+                    nombre=nombre_producto,
+                    op=op_description,
+                    versionsgc=sgc_version,
+                    cantidad=quantity,
+                    totallote=lote_total,
+                    numinicio=start_number
+                )
+                print(f'[LOG] Resultado de insert_impresion: {insert_ok}')
+                client.close()
+                if not insert_ok:
+                    QMessageBox.warning(self, "Error", "No se guardó la impresión en la base de datos.")
+                    return
+            except Exception as e:
+                print(f'[ERROR] Excepción en insert_impresion: {e}')
+                QMessageBox.warning(self, "Error", f"No se pudo guardar el registro en la base de datos: {str(e)}")
                 return
 
             print("--- Generando etiquetas ZPL ---")
