@@ -120,7 +120,18 @@ QComboBox {
 }
 
 QComboBox:hover {
-    border-color: #888;
+    border-color: #0078d7;
+    background-color: #eef6fd;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    border-color: #0078d7;
+    background-color: #eef6fd;
+    color: #222;
+}
+QComboBox QAbstractItemView::item:selected {
+    background-color: #d6eaff;
+    color: #222;
 }
 
 /* Tab Widget */

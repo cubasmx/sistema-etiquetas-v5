@@ -17,44 +17,58 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFormLayout,
     QTableWidget,
-    QTableWidgetItem
+    QTableWidgetItem,
+    QComboBox,
+    QSizePolicy
 )
 import socket
 from odoo_client import OdooClient
 import json
 import os
 from src.utils.mysql_client import MysqlClient
+from PyQt6.QtCore import Qt
 
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Historial de Impresiones')
-        self.resize(900, 400)
-        self.setMinimumSize(700, 400)
+        self.resize(1000, 500)
+        self.setMinimumSize(900, 400)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
+        # Filtro de orden
+        self.order_combo = QComboBox()
+        self.order_combo.addItems(['Más reciente primero', 'Más antiguo primero'])
+        self.order_combo.currentIndexChanged.connect(self.load_history)
+        layout.addWidget(self.order_combo)
+
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(8)
         self.table_widget.setHorizontalHeaderLabels([
-            'ID', 'Nombre', 'OP', 'SGC', 'Cantidad', 'Total Lote', 'Inicio', 'Fecha Registro'
+            'ID', 'Nombre', 'OP', 'SGC', 'Cantidad', 'Total Lote', 'Inicio', 'Fecha'
         ])
         self.table_widget.horizontalHeader().setStretchLastSection(True)
+        self.table_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.table_widget)
 
         self.load_history()
 
     def load_history(self):
+        order_desc = self.order_combo.currentIndex() == 0 if hasattr(self, 'order_combo') else True
         try:
             client = MysqlClient()
             client.connect()
-            resultados = client.select_impresiones()
+            resultados = client.select_impresiones(order_desc=order_desc)
             if resultados:
                 self.table_widget.setRowCount(len(resultados))
                 for row, entry in enumerate(resultados):
                     fecha_raw = entry.get('fecha_operacion', entry.get('FECHA_OPERACION', ''))
                     try:
-                        fecha_fmt = datetime.strptime(str(fecha_raw), "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M")
+                        if isinstance(fecha_raw, datetime):
+                            fecha_fmt = fecha_raw.strftime("%d/%m/%Y %H:%M")
+                        else:
+                            fecha_fmt = datetime.strptime(str(fecha_raw), "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M")
                     except Exception:
                         fecha_fmt = str(fecha_raw)
                     id_ = entry.get('ID', entry.get('id', ''))
@@ -66,12 +80,22 @@ class HistoryDialog(QDialog):
                     numinicio = entry.get('numinicio', entry.get('NUMINICIO', ''))
                     values = [id_, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_fmt]
                     for col, value in enumerate(values):
-                        self.table_widget.setItem(row, col, QTableWidgetItem(str(value)))
+                        item = QTableWidgetItem(str(value))
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        if col == 1:  # Columna 'Nombre'
+                            item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                        self.table_widget.setItem(row, col, item)
+                self.table_widget.setColumnWidth(1, 200)  # Columna 'Nombre'
+                self.table_widget.resizeRowsToContents()
+                self.table_widget.setWordWrap(True)
             else:
                 self.table_widget.setRowCount(1)
                 self.table_widget.setItem(0, 0, QTableWidgetItem('No hay historial disponible.'))
             client.close()
         except Exception as e:
+            import traceback
+            print("[ERROR] Excepción al cargar historial:", e)
+            traceback.print_exc()
             self.table_widget.setRowCount(1)
             self.table_widget.setItem(0, 0, QTableWidgetItem(f"Error al cargar historial: {str(e)}"))
 

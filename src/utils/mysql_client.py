@@ -25,23 +25,24 @@ class MysqlClient:
             print(f'Error al conectar a MySQL: {e}')
             self.connection = None
 
-    def select_impresiones(self, ID=None):
+    def select_impresiones(self, ID=None, order_desc=True):
         """
-        Trae todas las impresiones, incluyendo fecha_operacion.
+        Trae todas las impresiones, ordenadas por fecha_operacion ASC o DESC.
         """
         if self.connection is None or not self.connection.is_connected():
             print('[LOG] Conexión no activa, reconectando para SELECT...')
             self.connect()
 
+        order = 'DESC' if order_desc else 'ASC'
         try:
             cursor = self.connection.cursor(dictionary=True)
             if ID:
-                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones WHERE ID = %s ORDER BY fecha_operacion DESC"
+                query = f"SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones WHERE ID = %s ORDER BY fecha_operacion {order}"
                 print(f'[LOG] Ejecutando SELECT con filtro ID: {ID}')
                 cursor.execute(query, (ID,))
             else:
-                query = "SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones ORDER BY fecha_operacion DESC"
-                print('[LOG] Ejecutando SELECT de todas las impresiones')
+                query = f"SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion FROM Impresiones ORDER BY fecha_operacion {order}"
+                print(f'[LOG] Ejecutando SELECT de todas las impresiones ordenadas por {order}')
                 cursor.execute(query)
             results = cursor.fetchall()
             print(f'[LOG] Resultados obtenidos: {results}')
