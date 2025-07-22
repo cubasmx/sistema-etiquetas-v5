@@ -15,7 +15,9 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
     QDialog,
-    QFormLayout
+    QFormLayout,
+    QTableWidget,
+    QTableWidgetItem
 )
 import socket
 from odoo_client import OdooClient
@@ -27,24 +29,29 @@ class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Historial de Impresiones')
-        self.resize(900, 500)
-        self.setMinimumSize(500, 400)
+        self.resize(900, 400)
+        self.setMinimumSize(700, 400)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
-        self.list_widget = QListWidget()
-        layout.addWidget(self.list_widget)
+        self.table_widget = QTableWidget()
+        self.table_widget.setColumnCount(8)
+        self.table_widget.setHorizontalHeaderLabels([
+            'ID', 'Nombre', 'OP', 'SGC', 'Cantidad', 'Total Lote', 'Inicio', 'Fecha Registro'
+        ])
+        self.table_widget.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(self.table_widget)
 
         self.load_history()
 
     def load_history(self):
-        # Usar MysqlClient para obtener el historial de impresiones
         try:
             client = MysqlClient()
             client.connect()
             resultados = client.select_impresiones()
             if resultados:
-                for entry in resultados:
+                self.table_widget.setRowCount(len(resultados))
+                for row, entry in enumerate(resultados):
                     fecha_raw = entry.get('fecha_operacion', entry.get('FECHA_OPERACION', ''))
                     try:
                         fecha_fmt = datetime.strptime(str(fecha_raw), "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M")
@@ -57,14 +64,16 @@ class HistoryDialog(QDialog):
                     cantidad = entry.get('cantidad', entry.get('CANTIDAD', ''))
                     totallote = entry.get('totallote', entry.get('TOTALLOTE', ''))
                     numinicio = entry.get('numinicio', entry.get('NUMINICIO', ''))
-                    texto = (f"{fecha_fmt} - ID: {id_} - {nombre} - OP: {op} - SGC: {versionsgc} - "
-                             f"Cantidad: {cantidad} - Total Lote: {totallote} - Inicio: {numinicio}")
-                    self.list_widget.addItem(texto)
+                    values = [id_, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_fmt]
+                    for col, value in enumerate(values):
+                        self.table_widget.setItem(row, col, QTableWidgetItem(str(value)))
             else:
-                self.list_widget.addItem('No hay historial disponible.')
+                self.table_widget.setRowCount(1)
+                self.table_widget.setItem(0, 0, QTableWidgetItem('No hay historial disponible.'))
             client.close()
         except Exception as e:
-            self.list_widget.addItem(f"Error al cargar historial: {str(e)}")
+            self.table_widget.setRowCount(1)
+            self.table_widget.setItem(0, 0, QTableWidgetItem(f"Error al cargar historial: {str(e)}"))
 
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
@@ -439,7 +448,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     with open("styles.qss", "r") as f:
         qss = f.read()
-        print("QSS cargado:", qss[:100]) 
         app.setStyleSheet(qss)
     window = MainWindow()
     window.show()

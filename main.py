@@ -10,7 +10,6 @@ def main():
     app = QApplication(sys.argv)
     with open("styles.qss", "r") as f:
         qss = f.read()
-        print("QSS cargado:", qss[:100])  # Muestra los primeros 100 caracteres
         app.setStyleSheet(qss)
     window = MainWindow()
     window.show()
