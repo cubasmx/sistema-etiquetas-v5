@@ -28,6 +28,15 @@ import os
 from src.utils.mysql_client import MysqlClient
 from PyQt6.QtCore import Qt
 
+def resource_path(relative_path):
+    """Obtiene la ruta absoluta al recurso, compatible con PyInstaller y desarrollo."""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Forzar uso de certificados incluidos
+os.environ['SSL_CERT_FILE'] = resource_path('src/assets/cacert.pem')
+
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -173,6 +182,66 @@ class ConfigDialog(QDialog):
             'port': self.port_input.value()
         }
 
+class PrinterConfigDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Configuración de Impresora')
+        self.resize(400, 200)
+        self.setMinimumSize(400, 200)
+        self.setModal(True)
+        
+        # Crear layout
+        layout = QFormLayout()
+        
+        # Campos de configuración de impresora
+        self.printer_ip_input = QLineEdit()
+        self.printer_ip_input.setText('10.10.2.46')  # IP por defecto
+        self.printer_port_input = QSpinBox()
+        self.printer_port_input.setRange(1, 65535)
+        self.printer_port_input.setValue(6101)  # Puerto por defecto
+        
+        # Agregar campos al layout
+        layout.addRow('IP de la Impresora:', self.printer_ip_input)
+        layout.addRow('Puerto de la Impresora:', self.printer_port_input)
+        
+        # Botones
+        button_layout = QHBoxLayout()
+        save_button = QPushButton('Guardar')
+        cancel_button = QPushButton('Cancelar')
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        # Conectar señales
+        save_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        
+        # Layout principal
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
+        
+        # Cargar configuración actual
+        self.load_current_config()
+    
+    def load_current_config(self):
+        try:
+            with open('printer_config.json', 'r') as f:
+                config = json.load(f)
+                self.printer_ip_input.setText(config.get('printer_ip', '10.10.2.46'))
+                self.printer_port_input.setValue(config.get('printer_port', 6101))
+        except FileNotFoundError:
+            # Si no existe el archivo, usar valores por defecto
+            pass
+        except Exception as e:
+            print(f"Error al cargar la configuración de impresora: {str(e)}")
+    
+    def get_config(self):
+        return {
+            'printer_ip': self.printer_ip_input.text(),
+            'printer_port': self.printer_port_input.value()
+        }
+
 class MainWindow(QWidget):
     def __init__(self):
         # Constructor de la ventana principal
@@ -198,11 +267,15 @@ class MainWindow(QWidget):
         # Botón de historial
         self.history_button = QPushButton('📄 Ver Historial')
         self.history_button.clicked.connect(self.show_history_dialog)
+        # Botón de configuración de impresora
+        self.printer_config_button = QPushButton('🖨️ Config. Impresora')
+        self.printer_config_button.clicked.connect(self.show_printer_config_dialog)
 
         # Layout para los botones superiores
         top_buttons_layout = QHBoxLayout()
         top_buttons_layout.addWidget(self.config_button)
         top_buttons_layout.addWidget(self.history_button)
+        top_buttons_layout.addWidget(self.printer_config_button)
 
         # Botones y campos de entrada
         self.search_input = QLineEdit()
@@ -395,8 +468,20 @@ class MainWindow(QWidget):
 
             print("--- Generando etiquetas ZPL ---")
             try:
-                printer_ip = "10.10.2.34"
-                printer_port = 9100
+                # Cargar configuración de impresora
+                printer_ip = "10.10.2.46"  # IP por defecto
+                printer_port = 6101  # Puerto por defecto
+                
+                try:
+                    with open('printer_config.json', 'r') as f:
+                        printer_config = json.load(f)
+                        printer_ip = printer_config.get('printer_ip', printer_ip)
+                        printer_port = printer_config.get('printer_port', printer_port)
+                except FileNotFoundError:
+                    # Si no existe el archivo de configuración, usar valores por defecto
+                    pass
+                except Exception as e:
+                    print(f"Error al cargar configuración de impresora: {e}")
 
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.connect((printer_ip, printer_port))
@@ -467,10 +552,23 @@ ODOO_CONFIG = {json.dumps(config, indent=4)}"""
         dialog = HistoryDialog(self)
         dialog.exec()
 
+    def show_printer_config_dialog(self):
+        """Muestra el diálogo de configuración de impresora"""
+        dialog = PrinterConfigDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            config = dialog.get_config()
+            try:
+                # Guardar la configuración de impresora
+                with open('printer_config.json', 'w') as f:
+                    json.dump(config, f, indent=4)
+                QMessageBox.information(self, "Éxito", "Configuración de impresora guardada correctamente.")
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"Error al guardar la configuración de impresora: {str(e)}")
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    with open("styles.qss", "r") as f:
+    with open(resource_path("styles.qss"), "r") as f:
         qss = f.read()
         app.setStyleSheet(qss)
     window = MainWindow()
