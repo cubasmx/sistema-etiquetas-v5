@@ -492,12 +492,12 @@ class MainWindow(QWidget):
                         sgc_version_print = sgc_version.encode('latin1', errors='replace').decode('latin1')
 
                         zpl_label = f"""^XA
-                        ^FO50,35^A0N,18,18^FD{nombre_producto_print}^FS
-                        ^FO50,60^BCN,75,Y,N,N^FD{id_producto}^FS
-                        ^FO50,168^A0N,20,20^FD{op_description_print}^FS
-                        ^FO50,188^A0N,18,18^FD{i}/{lote_total}^FS
-                        ^FO200,188^A0N,18,18^FD{sgc_version_print}^FS
-                        ^FO215,168^A0N,18,18^FD{datetime.now().strftime('%d/%m/%Y')}^FS
+                        ^FO20,35^A0N,18,18^FD{nombre_producto_print}^FS
+                        ^FO20,60^BCN,75,Y,N,N^FD{id_producto}^FS
+                        ^FO20,168^A0N,20,20^FD{op_description_print}^FS
+                        ^FO20,188^A0N,18,18^FD{i}/{lote_total}^FS
+                        ^FO200,198^A0N,18,18^FD{sgc_version_print}^FS
+                        ^FO200,178^A0N,18,18^FD{datetime.now().strftime('%d/%m/%Y')}^FS
                         ^PQ1,1,1,Y^XZ"""
 
                         print(f"--- Enviando etiqueta {i}/{lote_total} ---")
