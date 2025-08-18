@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 import xmlrpc.client
 from odoo_config import ODOO_CONFIG
+import sys
+import os
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Forzar uso de certificados incluidos si se ejecuta directamente
+if __name__ == "__main__":
+    os.environ['SSL_CERT_FILE'] = resource_path('src/assets/cacert.pem')
 
 class OdooClient:
     def __init__(self):
