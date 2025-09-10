@@ -1,0 +1,18 @@
+Sistema de Etiquetas - Windows
+Versión: 20250910
+Build: mié 10 sep 2025 11:35:54 CST
+
+Nuevas características:
+- Configuración dinámica con pestañas
+- Tolerancia a fallos de MySQL
+- Verificación rápida de conectividad
+- Campos editables para todas las configuraciones
+- Mejor manejo de errores
+
+Archivos incluidos:
+- SistemaEtiquetas.exe (ejecutable principal)
+- mysql_config.json (configuración MySQL)
+- odoo_config.py (configuración Odoo)
+- printer_config.json (configuración impresora)
+- styles.qss (estilos de interfaz)
+- iconos y assets

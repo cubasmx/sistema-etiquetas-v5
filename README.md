@@ -1,71 +1,105 @@
-# Sistema de Impresión de Etiquetas
+# Sistema de Etiquetas
 
-Sistema para la impresión de etiquetas con códigos de barras, integrado con Odoo.
+Sistema de impresión de etiquetas con configuración dinámica y tolerancia a fallos de MySQL.
+
+## Estructura del Proyecto
+
+```
+sistema-etiquetas-v5/
+├── SistemaEtiquetas.py          # Aplicación principal
+├── main.py                      # Punto de entrada alternativo
+├── odoo_client.py              # Cliente Odoo (legacy)
+├── build.sh                    # Script principal de build
+├── .gitignore                  # Archivos ignorados por Git
+│
+├── assets/                     # Recursos de la aplicación
+│   └── styles.qss             # Estilos de la interfaz
+│
+├── build/                      # Archivos de configuración PyInstaller
+│   ├── sistema_etiquetas_fedora.spec
+│   └── PythonApplication1.spec
+│
+├── config/                     # Archivos de configuración
+│   ├── config.json            # Configuración general (legacy)
+│   ├── mysql_config.json      # Configuración MySQL
+│   ├── odoo_config.py         # Configuración Odoo
+│   └── printer_config.json    # Configuración impresora
+│
+├── dist/                      # Ejecutables compilados (generado)
+│
+├── docs/                      # Documentación
+│   ├── README.md             # Este archivo
+│   └── requirements.txt      # Dependencias Python
+│
+├── scripts/                   # Scripts de utilidad
+│   └── build_fedora.sh       # Script de compilación Fedora
+│
+└── src/                       # Código fuente modular
+    ├── assets/               # Iconos y recursos
+    ├── export/               # Exportadores (Excel, etc.)
+    ├── odoo/                 # Módulos de conexión Odoo
+    ├── ui/                   # Interfaz de usuario
+    └── utils/                # Utilidades (MySQL, config, etc.)
+```
 
 ## Características
 
-- Búsqueda de productos en Odoo
-- Generación de etiquetas con códigos de barras
-- Impresión en formato ZPL
-- Configuración de conexión a Odoo
-- Interfaz gráfica intuitiva
+### ✅ Configuración Dinámica
+- **Pestañas separadas**: Configuración Odoo y Base de Datos Historial
+- **Campos editables**: Todos los parámetros son configurables
+- **Guardado automático**: Configuración se guarda en archivos separados
 
-## Requisitos
+### ✅ Tolerancia a Fallos MySQL
+- **Verificación rápida**: Detección de servidor en 0.3 segundos
+- **Sin bloqueos**: Aplicación continúa funcionando si MySQL falla
+- **Mensajes informativos**: Warnings en lugar de errores críticos
 
-- Python 3.11 o superior
-- PyQt6
-- Impresora compatible con ZPL
-- Acceso a Odoo
+### ✅ Interfaz Mejorada
+- **Mejor espaciado**: Elementos organizados visualmente
+- **Grupos de configuración**: Campos agrupados por funcionalidad
+- **Información contextual**: Ayuda integrada en la interfaz
 
-## Instalación
+## Instalación y Uso
 
-1. Clonar el repositorio:
+### Compilar la aplicación
 ```bash
-git clone [URL_DEL_REPOSITORIO]
-cd sistema-etiquetas
+./build.sh
 ```
 
-2. Crear un entorno virtual:
+### Ejecutar desde código fuente
 ```bash
-python -m venv venv
-source venv/bin/activate  # En Linux/Mac
-# o
-venv\Scripts\activate  # En Windows
+python3 SistemaEtiquetas.py
 ```
 
-3. Instalar dependencias:
-```bash
-pip install -r requirements.txt
-```
+### Configurar la aplicación
+1. Ejecutar la aplicación
+2. Hacer clic en "⚙️ Configuración"
+3. Cambiar entre pestañas "Configuración Odoo" y "Base de Datos Historial"
+4. Modificar los valores según tu configuración
+5. Hacer clic en "Guardar Configuración"
+6. Reiniciar la aplicación para aplicar cambios
 
-4. Configurar la conexión a Odoo:
-   - Copiar `odoo_config.py.example` a `odoo_config.py`
-   - Editar `odoo_config.py` con los datos de conexión
+## Archivos de Configuración
 
-## Uso
+- **`config/mysql_config.json`**: Configuración de base de datos del historial
+- **`config/odoo_config.py`**: Configuración de conexión Odoo
+- **`config/printer_config.json`**: Configuración de impresora
+- **`config/config.json`**: Configuración general (legacy)
 
-1. Activar el entorno virtual:
-```bash
-source venv/bin/activate  # En Linux/Mac
-# o
-venv\Scripts\activate  # En Windows
-```
+## Dependencias
 
-2. Ejecutar la aplicación:
-```bash
-python PythonApplication1.py
-```
+Ver `docs/requirements.txt` para la lista completa de dependencias Python.
 
-## Compilación para Windows
+## Desarrollo
 
-1. Instalar las dependencias:
-```bash
-pip install -r requirements.txt
-```
+El proyecto está organizado en módulos:
+- **`src/ui/`**: Interfaz de usuario (diálogos, ventanas)
+- **`src/utils/`**: Utilidades (MySQL, configuración)
+- **`src/odoo/`**: Conexión y cliente Odoo
+- **`src/export/`**: Exportadores de datos
 
-2. Compilar con PyInstaller:
-```bash
-pyinstaller sistema_etiquetas.spec
-```
+## Solución de Problemas
 
-El ejecutable se creará en la carpeta `dist/`. 
+- Si MySQL no está disponible, la aplicación funcionará sin guardar historial
+- Los mensajes de advertencia son normales y no afectan la funcionalidad
+- Reinicia la aplicación después de cambiar la configuración
