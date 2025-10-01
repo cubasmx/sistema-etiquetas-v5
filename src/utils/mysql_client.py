@@ -1,95 +1,63 @@
+# src/utils/mysql_client.py
 import pymysql
-
+import time
 
 class MysqlClient:
-    def __init__(self, host='10.10.1.8', user='master', password='Ensa2025.', database='etiquetas', port=3306):
-        self.host = host
-        self.user = user
-        self.password = password
-        self.database = database
-        self.port = port
-        self.connection = None
+    def __init__(self, **cfg):
+        self.cfg = dict(
+            host="10.10.2.63",      # 👈 tu servidor nuevo
+            user="etiquetas",       # 👈 usuario creado en MariaDB
+            password="C0ntr@s3ñA.Segura!",  # 👈 tu contraseña
+            database="etiquetas",   # 👈 base de datos
+            port=3306,
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=5
+        )
+        self.cfg.update(cfg)
+        self.conn = None
 
-    def connect(self):
+    def connect(self, retries=3, delay=2):
+        last = None
+        for i in range(retries):
+            try:
+                self.conn = pymysql.connect(**self.cfg, autocommit=True)
+                with self.conn.cursor() as c:
+                    c.execute("SELECT 1")
+                return True
+            except Exception as e:
+                last = e
+                time.sleep(delay)
+        self.conn = None
+        print(f"[ERROR] No se pudo conectar: {last}")
+        return False
+
+    def ensure_conn(self):
+        if self.conn is None:
+            return self.connect()
         try:
-            self.connection = pymysql.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                database=self.database,
-                port=self.port,
-                cursorclass=pymysql.cursors.DictCursor
-            )
-            print('Conexión a MySQL exitosa')
-        except Exception as e:
-            print(f'Error al conectar a MySQL: {e}')
-            self.connection = None
+            self.conn.ping(reconnect=True)
+            return True
+        except Exception:
+            return self.connect()
 
-    def select_impresiones(self, ID=None, order_desc=True):
-        if self.connection is None:
-            print('[LOG] Conexión no activa, reconectando para SELECT...')
-            self.connect()
-
-        order = 'DESC' if order_desc else 'ASC'
+    def insert_impresion(self, id_producto, user, nombre, op, versionsgc, cantidad, totallote, numinicio):
+        if not self.ensure_conn():
+            return False
         try:
-            cursor = self.connection.cursor()
-            if ID:
-                query = f"""
-                SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion
-                FROM Impresiones
-                WHERE ID = %s ORDER BY fecha_operacion {order}
+            with self.conn.cursor() as cur:
+                sql = """
+                INSERT INTO Impresiones
+                    (id_producto, user, nombre, op, versionsgc, cantidad, totallote, numinicio)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                print(f'[LOG] Ejecutando SELECT con filtro ID: {ID}')
-                cursor.execute(query, (ID,))
-            else:
-                query = f"""
-                SELECT ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion
-                FROM Impresiones
-                ORDER BY fecha_operacion {order}
-                """
-                print(f'[LOG] Ejecutando SELECT de todas las impresiones ordenadas por {order}')
-                cursor.execute(query)
-            results = cursor.fetchall()
-            print(f'[LOG] Resultados obtenidos: {results}')
-            cursor.close()
-            return results
+                cur.execute(sql, (id_producto, user, nombre, op, versionsgc, cantidad, totallote, numinicio))
+            return True
         except Exception as e:
-            print(f'[ERROR] Error al ejecutar SELECT en Impresiones: {e}')
-            return None
-
-    def insert_impresion(self, ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion=None):
-        if self.connection is None:
-            print('[LOG] Conexión no activa, reconectando para INSERT...')
-            self.connect()
-
-        try:
-            cursor = self.connection.cursor()
-            if fecha_operacion:
-                query = """
-                    INSERT INTO Impresiones
-                    (ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                print(f'[LOG] Ejecutando INSERT con fecha_operacion: {fecha_operacion}')
-                cursor.execute(query, (ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio, fecha_operacion))
-            else:
-                query = """
-                    INSERT INTO Impresiones
-                    (ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                print(f'[LOG] Ejecutando INSERT sin fecha_operacion: ({ID}, {user}, {nombre}, {op}, {versionsgc}, {cantidad}, {totallote}, {numinicio})')
-                cursor.execute(query, (ID, user, nombre, op, versionsgc, cantidad, totallote, numinicio))
-
-            self.connection.commit()
-            print(f'[LOG] Insert realizado, filas afectadas: {cursor.rowcount}')
-            cursor.close()
-            return cursor.rowcount == 1
-        except Exception as e:
-            print(f'[ERROR] Error al ejecutar INSERT en Impresiones: {e}')
+            print(f"[ERROR] insert_impresion falló: {e}")
             return False
 
     def close(self):
-        if self.connection:
-            self.connection.close()
-            print('Conexión a MySQL cerrada')
+        if self.conn:
+            self.conn.close()
+            self.conn = None

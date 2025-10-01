@@ -4,7 +4,7 @@
 ODOO_CONFIG = {
     "url": "https://tuercasyabrazaderasensa.odoo.com",
     "db": "tuercasyabrazaderasensa",
-    "username": "ing4@suspensionesensa.com",
-    "password": "12345678",
+    "username": "ti2@suspensionesensa.com",
+    "password": "f8044A87b2.123",
     "port": 443
 }

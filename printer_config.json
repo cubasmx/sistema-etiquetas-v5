@@ -1,4 +1,6 @@
 {
-    "printer_ip": "10.10.2.62",
-    "printer_port": 6101
+    "printer_ip": "10.10.2.23",
+    "printer_port": 6101,
+    "vertical_offset_dots": 20,
+    "horizontal_offset_dots": 10
 }

@@ -26,6 +26,9 @@ class OdooClient:
         
         # Autenticar y obtener uid
         self.uid = self.common.authenticate(self.db, self.username, self.password, {})
+        if not self.uid:
+            raise RuntimeError(f"Autenticación fallida para usuario {self.username}")
+
 
     def search_products(self, query):
         """Buscar productos en Odoo"""
