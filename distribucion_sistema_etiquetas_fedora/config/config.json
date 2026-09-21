@@ -1,7 +1,0 @@
-{
-    "url": "https://tu-empresa.odoo.com",
-    "database": "tu-base-de-datos",
-    "username": "tu-usuario@email.com",
-    "password": "",
-    "port": 443
-}
