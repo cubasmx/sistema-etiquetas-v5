@@ -221,7 +221,7 @@ class ConfigDialog(QDialog):
         self.mysql_port_input.setValue(3306)
         self.mysql_user_input.setPlaceholderText("usuario")
         self.mysql_password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.mysql_password_input.setPlaceholderText("Ensa2025.")
+        self.mysql_password_input.setPlaceholderText("password")
         self.mysql_database_input.setPlaceholderText("etiquetas")
         
         # Añadir campos al formulario MySQL
