@@ -9,11 +9,11 @@ class MysqlClient:
         # Cargar configuración desde archivo si no se proporcionan parámetros
         if host is None:
             config = self._load_config()
-            self.host = config.get('host', '10.10.1.8')
-            self.user = config.get('user', 'master')
-            self.password = config.get('password', 'Ensa2025.')
-            self.database = config.get('database', 'etiquetas')
-            self.port = config.get('port', 3306)
+            self.host = os.getenv('MYSQL_HOST', config.get('host', ''))
+            self.user = os.getenv('MYSQL_USER', config.get('user', ''))
+            self.password = os.getenv('MYSQL_PASSWORD', config.get('password', ''))
+            self.database = os.getenv('MYSQL_DATABASE', config.get('database', 'etiquetas'))
+            self.port = int(os.getenv('MYSQL_PORT', config.get('port', 3306)))
         else:
             self.host = host
             self.user = user
@@ -33,11 +33,11 @@ class MysqlClient:
         
         # Valores por defecto si no existe el archivo
         return {
-            'host': '10.10.1.8',
-            'user': 'master',
-            'password': 'Ensa2025.',
-            'database': 'etiquetas',
-            'port': 3306
+            'host': os.getenv('MYSQL_HOST', ''),
+            'user': os.getenv('MYSQL_USER', ''),
+            'password': os.getenv('MYSQL_PASSWORD', ''),
+            'database': os.getenv('MYSQL_DATABASE', 'etiquetas'),
+            'port': int(os.getenv('MYSQL_PORT', 3306)),
         }
 
     def _is_server_reachable(self):

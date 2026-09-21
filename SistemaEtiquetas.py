@@ -216,10 +216,10 @@ class ConfigDialog(QDialog):
         self.mysql_database_input = QLineEdit()
         
         # Configurar campos MySQL
-        self.mysql_host_input.setPlaceholderText("10.10.1.8")
+        self.mysql_host_input.setPlaceholderText("servidor-mysql")
         self.mysql_port_input.setRange(1, 65535)
         self.mysql_port_input.setValue(3306)
-        self.mysql_user_input.setPlaceholderText("master")
+        self.mysql_user_input.setPlaceholderText("usuario")
         self.mysql_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.mysql_password_input.setPlaceholderText("Ensa2025.")
         self.mysql_database_input.setPlaceholderText("etiquetas")
@@ -272,10 +272,10 @@ class ConfigDialog(QDialog):
             if os.path.exists('mysql_config.json'):
                 with open('mysql_config.json', 'r') as f:
                     mysql_config = json.load(f)
-                    self.mysql_host_input.setText(mysql_config.get('host', '10.10.1.8'))
-                    self.mysql_port_input.setValue(int(mysql_config.get('port', 3306)))
-                    self.mysql_user_input.setText(mysql_config.get('user', 'master'))
-                    self.mysql_password_input.setText(mysql_config.get('password', 'Ensa2025.'))
+                    self.mysql_host_input.setText(mysql_config.get('host', os.getenv('MYSQL_HOST', '')))
+                    self.mysql_port_input.setValue(int(mysql_config.get('port', int(os.getenv('MYSQL_PORT', 3306)))))
+                    self.mysql_user_input.setText(mysql_config.get('user', os.getenv('MYSQL_USER', '')))
+                    self.mysql_password_input.setText(mysql_config.get('password', os.getenv('MYSQL_PASSWORD', '')))
                     self.mysql_database_input.setText(mysql_config.get('database', 'etiquetas'))
         except Exception as e:
             QMessageBox.warning(

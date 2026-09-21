@@ -44,4 +44,9 @@ Thumbs.db
 
 # PyInstaller
 build/
-dist/ 
+dist/
+
+# Entorno
+.env
+.env.*
+!.env.example

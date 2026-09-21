@@ -1,7 +1,7 @@
 {
-    "host": "10.10.1.8",
+    "host": "tu-servidor-mysql",
     "port": 3306,
-    "user": "master",
-    "password": "Ensa2025.",
+    "user": "tu-usuario",
+    "password": "",
     "database": "etiquetas"
 }

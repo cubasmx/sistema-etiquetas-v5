@@ -1,7 +1,7 @@
 {
-    "url": "https://http//tuercasyabrazaderasensa.odoo.com",
-    "database": "tuercasyabrazaderasensa",
-    "username": "ing4@suspensionesensa.com",
-    "password": "12345678",
+    "url": "https://tu-empresa.odoo.com",
+    "database": "tu-base-de-datos",
+    "username": "tu-usuario@email.com",
+    "password": "",
     "port": 443
 }
